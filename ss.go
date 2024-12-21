@@ -13,23 +13,27 @@ type Snapshot struct {
 	_       sync.Mutex
 }
 
-func (u *Snapshot) Readonly() bool {
-	return u.version < 0
+func (ss *Snapshot) Readonly() bool {
+	return ss.version < 0
 }
 
-func (u *Snapshot) Changes() iter.Seq2[string, string] {
-	return u.cc.Changes()
+func (ss *Snapshot) Changes() iter.Seq2[string, string] {
+	return ss.cc.Changes()
 }
 
-func (u *Snapshot) NewTransaction() *Transaction {
-	tx := u.cc.UnsafeNoCopyNew()
-	return &Transaction{tx}
+func (ss *Snapshot) NewTransaction() *Transaction {
+	tx := ss.cc.UnsafeNoCopyNew()
+	return &Transaction{tx, ss}
 }
 
-func (u *Snapshot) Commit(tx *Transaction) bool {
-	return u.cc.Commit(&tx.tx)
+func (ss *Snapshot) iterate(prefix string) iter.Seq[string] {
+	return ss.ss.Iterate(prefix)
 }
 
-func (u *Snapshot) Release() {
-	u.ss.Release()
+func (ss *Snapshot) Commit(tx *Transaction) bool {
+	return ss.cc.Commit(&tx.tx)
+}
+
+func (ss *Snapshot) Release() {
+	ss.ss.Release()
 }

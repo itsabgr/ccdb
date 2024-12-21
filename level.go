@@ -4,11 +4,26 @@ import (
 	"errors"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
+	"iter"
 	"unsafe"
 )
 
 type levelSnapshot struct {
 	ss *leveldb.Snapshot
+}
+
+func (s levelSnapshot) Iterate(prefix string) iter.Seq[string] {
+	it := s.ss.NewIterator(util.BytesPrefix(*(*[]byte)(unsafe.Pointer(&prefix))), nil)
+	return func(yield func(string) bool) {
+		defer it.Release()
+		for it.Next() {
+			key := it.Key()
+			if !yield(string(key)) {
+				return
+			}
+		}
+	}
 }
 
 func (s levelSnapshot) Release() {
